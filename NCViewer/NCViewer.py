@@ -184,4 +184,75 @@ def _is_spatial(dim_name: str) -> bool:
     return dim_name.lower() in SPATIAL_DIM_KEYWORDS
 
 
+# ── Compact arrow navigator (only for non-spatial dims) ───────────────────────
+
+class DimArrows(QWidget):
+    """◀  idx / total  ▶  navigator for a single non-spatial dimension."""
+    valueChanged = pyqtSignal(int)
+
+    def __init__(self, dim_name: str, size: int, parent=None):
+        super().__init__(parent)
+        self.dim_name = dim_name
+        self.size = size
+        self._index = 0
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 1, 0, 1)
+        row.setSpacing(4)
+
+        lbl = QLabel(dim_name)
+        lbl.setObjectName("dim_label")
+        lbl.setFixedWidth(68)
+        lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row.addWidget(lbl)
+
+        self.btn_prev = QPushButton("◀")
+        self.btn_prev.setObjectName("nav_btn")
+        self.btn_prev.setToolTip("Previous step  (←)")
+        self.btn_prev.clicked.connect(self._prev)
+        row.addWidget(self.btn_prev)
+
+        self.idx_lbl = QLabel(self._fmt())
+        self.idx_lbl.setObjectName("idx_label")
+        self.idx_lbl.setAlignment(Qt.AlignCenter)
+        row.addWidget(self.idx_lbl)
+
+        self.btn_next = QPushButton("▶")
+        self.btn_next.setObjectName("nav_btn")
+        self.btn_next.setToolTip("Next step  (→)")
+        self.btn_next.clicked.connect(self._next)
+        row.addWidget(self.btn_next)
+
+        row.addStretch()
+        self._refresh()
+
+    def _fmt(self):
+        return f"{self._index} / {self.size - 1}"
+
+    def _prev(self):
+        if self._index > 0:
+            self._index -= 1
+            self._emit()
+
+    def _next(self):
+        if self._index < self.size - 1:
+            self._index += 1
+            self._emit()
+
+    def _emit(self):
+        self.idx_lbl.setText(self._fmt())
+        self._refresh()
+        self.valueChanged.emit(self._index)
+
+    def _refresh(self):
+        self.btn_prev.setEnabled(self._index > 0)
+        self.btn_next.setEnabled(self._index < self.size - 1)
+
+    def value(self):
+        return self._index
+
+    def setValue(self, v: int):
+        self._index = max(0, min(v, self.size - 1))
+        self.idx_lbl.setText(self._fmt())
+        self._refresh()
 
